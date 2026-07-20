@@ -1,2 +1,13 @@
-# mi-discografia
-Aplicación para catalogar mi colección de discos
+# Mi Discografía
+
+Aplicación web instalable para iPhone que permite escanear códigos de barras y catalogar discos.
+
+## Publicar con GitHub Pages
+
+1. Sube todos estos archivos a la raíz del repositorio.
+2. Abre **Settings → Pages**.
+3. En **Build and deployment**, selecciona **Deploy from a branch**.
+4. Elige la rama **main** y la carpeta **/(root)**.
+5. Guarda y abre la dirección que mostrará GitHub Pages.
+
+Los discos se guardan en el propio dispositivo mediante almacenamiento local.
