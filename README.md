@@ -11,3 +11,7 @@ Aplicación web instalable para iPhone que permite escanear códigos de barras y
 5. Guarda y abre la dirección que mostrará GitHub Pages.
 
 Los discos se guardan en el propio dispositivo mediante almacenamiento local.
+
+
+## Discogs
+La búsqueda por código de barras se realiza mediante la Edge Function `buscar-discogs` de Supabase. El token personal de Discogs permanece guardado como secreto `DISCOGS_TOKEN` en Supabase y no se incluye en el repositorio.
