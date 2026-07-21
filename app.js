@@ -1,56 +1,32 @@
-const $=s=>document.querySelector(s);const storeKey='mi-discografia-records-v1';const SUPABASE_URL='https://ejmatxopatslscrrebae.supabase.co';const SUPABASE_KEY='sb_publishable_q0cUfiUmnHWW2-CmcNsebA_muBk_RTQ';let scanner=null;let installPrompt=null;
-const els={scan:$('#scanBtn'),manual:$('#manualBtn'),scanner:$('#scannerPanel'),form:$('#formPanel'),status:$('#statusPanel'),statusText:$('#statusText'),records:$('#records'),count:$('#countText'),search:$('#search'),install:$('#installBtn')};
-function records(){return JSON.parse(localStorage.getItem(storeKey)||'[]')}function saveRecords(v){localStorage.setItem(storeKey,JSON.stringify(v));render()}
-function show(el){el.classList.remove('hidden')}function hide(el){el.classList.add('hidden')}
+const $=s=>document.querySelector(s);
+const storeKey='mi-discografia-records-v1';
+const SUPABASE_URL='https://ejmatxopatslscrrebae.supabase.co';
+const SUPABASE_KEY='sb_publishable_q0cUfiUmnHWW2-CmcNsebA_muBk_RTQ';
+let scanner=null;let installPrompt=null;
+const els={scan:$('#scanBtn'),manual:$('#manualBtn'),scanner:$('#scannerPanel'),form:$('#formPanel'),status:$('#statusPanel'),statusText:$('#statusText'),records:$('#records'),count:$('#countText'),search:$('#search'),install:$('#installBtn'),refresh:$('#refreshPricesBtn')};
+function records(){try{return JSON.parse(localStorage.getItem(storeKey)||'[]')}catch{return []}}
+function saveRecords(v){localStorage.setItem(storeKey,JSON.stringify(v));render()}
+function show(el){el?.classList.remove('hidden')}function hide(el){el?.classList.add('hidden')}
 function setStatus(text){els.statusText.textContent=text;show(els.status)}function stopStatus(){hide(els.status)}
+function alpha(a,b){return String(a||'').localeCompare(String(b||''),'es',{sensitivity:'base',numeric:true})}
+function sortedRecords(list){return [...list].sort((a,b)=>alpha(a.artist,b.artist)||alpha(a.title,b.title)||alpha(a.year,b.year))}
 async function startScanner(){show(els.scanner);stopStatus();scanner=new Html5Qrcode('reader');try{await scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:280,height:150},formatsToSupport:[Html5QrcodeSupportedFormats.EAN_13,Html5QrcodeSupportedFormats.EAN_8,Html5QrcodeSupportedFormats.UPC_A,Html5QrcodeSupportedFormats.UPC_E]},async code=>{await stopScanner();await lookupBarcode(code)},()=>{})}catch(e){setStatus('No se pudo abrir la cámara. Comprueba el permiso de Safari o introduce el código manualmente.')}}
 async function stopScanner(){hide(els.scanner);if(scanner){try{await scanner.stop()}catch(e){}try{scanner.clear()}catch(e){}scanner=null}}
-async function lookupBarcode(code){
-  code=String(code).replace(/\D/g,'');
-  setStatus(`Buscando el código ${code} en Discogs…`);
+async function getDiscogsPrice(barcode){
+  if(!barcode)return null;
   try{
-    const res=await fetch(`${SUPABASE_URL}/functions/v1/buscar-discogs`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY},
-      body:JSON.stringify({barcode:code})
-    });
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok)throw new Error(data.error||`Error ${res.status}`);
-    const results=Array.isArray(data.results)?data.results:[];
-    if(!data.found||!results.length){
-      stopStatus();
-      openForm({barcode:code});
-      alert('Discogs no ha encontrado este código. Puedes completar la ficha manualmente.');
-      return;
-    }
-    let selected=results[0];
-    if(results.length>1){
-      const options=results.slice(0,10).map((r,i)=>`${i+1}. ${r.artista||'Artista desconocido'} — ${r.titulo||'Sin título'}${r.ano?` (${r.ano})`:''}${r.formato?` · ${r.formato}`:''}`).join('\n');
-      const answer=prompt(`Discogs ha encontrado varias ediciones. Escribe el número correcto:\n\n${options}`,'1');
-      if(answer===null){stopStatus();return}
-      const index=Math.max(0,Math.min(results.length-1,(parseInt(answer,10)||1)-1));
-      selected=results[index];
-    }
-    stopStatus();
-    openForm({
-      barcode:code,
-      artist:selected.artista||'',
-      title:selected.titulo||'',
-      year:selected.ano||'',
-      label:selected.sello||'',
-      format:selected.formato||'',
-      cover:selected.portada||''
-    });
-  }catch(e){
-    console.error(e);
-    stopStatus();
-    openForm({barcode:code});
-    alert(`No se pudo consultar Discogs. ${e.message||'Revisa la función de Supabase.'}`);
-  }
+    const res=await fetch(`${SUPABASE_URL}/functions/v1/precio-discogs`,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({barcode})});
+    if(!res.ok)return null;
+    const data=await res.json();
+    return data?.found?data:null;
+  }catch{return null}
 }
-function openForm(v={}){const ids=['barcode','artist','title','year','format','label','cover','editId'];ids.forEach(id=>$('#'+id).value=v[id]||'');show(els.form);$('#artist').focus()}
-function render(){const q=els.search.value.trim().toLowerCase();const all=records();els.count.textContent=all.length?`${all.length} ${all.length===1?'disco guardado':'discos guardados'}`:'Tu colección está vacía';els.records.innerHTML='';const filtered=all.filter(r=>`${r.artist} ${r.title} ${r.year}`.toLowerCase().includes(q));if(!filtered.length){els.records.innerHTML='<div class="empty">Todavía no hay discos que mostrar.</div>';return}filtered.sort((a,b)=>a.artist.localeCompare(b.artist)).forEach(r=>{const node=$('#recordTemplate').content.cloneNode(true);const img=node.querySelector('.record-cover');img.src=r.cover||'icons/placeholder.svg';img.onerror=()=>img.src='icons/placeholder.svg';node.querySelector('.record-title').textContent=r.title;node.querySelector('.record-artist').textContent=r.artist;node.querySelector('.record-format').textContent=r.format||'DISCO';node.querySelector('.record-meta').textContent=[r.year,r.label].filter(Boolean).join(' · ');node.querySelector('.record-menu').onclick=()=>openForm(r);els.records.append(node)})}
-els.scan.onclick=startScanner;els.manual.onclick=()=>{const code=prompt('Escribe los números del código de barras:');if(code)lookupBarcode(code)};$('#closeScanner').onclick=stopScanner;$('#closeForm').onclick=()=>hide(els.form);els.search.oninput=render;
-$('#recordForm').onsubmit=e=>{e.preventDefault();const r={id:$('#editId').value||crypto.randomUUID(),barcode:$('#barcode').value.trim(),artist:$('#artist').value.trim(),title:$('#title').value.trim(),year:$('#year').value.trim(),format:$('#format').value.trim(),label:$('#label').value.trim(),cover:$('#cover').value.trim()};let all=records();const duplicate=all.find(x=>x.barcode&&x.barcode===r.barcode&&x.id!==r.id);if(duplicate&&!confirm('Ya tienes un disco con este código. ¿Quieres guardarlo igualmente?'))return;const ix=all.findIndex(x=>x.id===r.id);if(ix>=0)all[ix]=r;else all.unshift(r);saveRecords(all);hide(els.form);e.target.reset()};
+async function lookupBarcode(code){code=String(code).replace(/\D/g,'');setStatus(`Buscando el código ${code}…`);try{const url=`https://musicbrainz.org/ws/2/release/?query=barcode:${encodeURIComponent(code)}&fmt=json&limit=5`;const res=await fetch(url);if(!res.ok)throw new Error('search');const data=await res.json();if(!data.releases?.length){stopStatus();openForm({barcode:code});alert('No hemos encontrado este código. Puedes completar la ficha manualmente.');return}const r=data.releases[0];let detail=r;try{const d=await fetch(`https://musicbrainz.org/ws/2/release/${r.id}?inc=artists+labels+recordings+release-groups+media&fmt=json`);if(d.ok)detail=await d.json()}catch(e){}const artist=(detail['artist-credit']||r['artist-credit']||[]).map(a=>a.name||a.artist?.name).filter(Boolean).join(', ');const label=(detail['label-info']||[]).map(x=>x.label?.name).filter(Boolean).join(', ');const format=(detail.media||[]).map(m=>m.format).filter(Boolean).join(', ');const cover=`https://coverartarchive.org/release/${r.id}/front-500`;setStatus('Consultando precio orientativo en Discogs…');const price=await getDiscogsPrice(code);stopStatus();openForm({barcode:code,artist,title:detail.title||r.title,year:(detail.date||r.date||'').slice(0,4),label,format,cover,price:price?.price??'',currency:price?.currency??'',discogsId:price?.release_id??'',numForSale:price?.num_for_sale??''})}catch(e){stopStatus();openForm({barcode:code});alert('La búsqueda automática no respondió. El código ya está copiado para completar la ficha.')}}
+function openForm(v={}){const ids=['barcode','artist','title','year','format','label','cover','editId','price','currency','discogsId','numForSale'];ids.forEach(id=>{const el=$('#'+id);if(el)el.value=v[id]??''});const priceText=$('#pricePreview');if(priceText){priceText.textContent=v.price?`Estimación Discogs: ${formatPrice(v.price,v.currency)}${v.numForSale?` · ${v.numForSale} a la venta`:''}`:'Precio todavía no disponible';}show(els.form);$('#artist').focus()}
+function formatPrice(value,currency='EUR'){const n=Number(value);if(!Number.isFinite(n))return '';try{return new Intl.NumberFormat('es-ES',{style:'currency',currency:currency||'EUR',maximumFractionDigits:2}).format(n)}catch{return `${n.toFixed(2)} ${currency||'EUR'}`}}
+function render(){const q=els.search.value.trim().toLowerCase();const all=records();els.count.textContent=all.length?`${all.length} ${all.length===1?'disco guardado':'discos guardados'}`:'Tu colección está vacía';els.records.innerHTML='';const filtered=sortedRecords(all.filter(r=>`${r.artist} ${r.title} ${r.year} ${r.label}`.toLowerCase().includes(q)));if(!filtered.length){els.records.innerHTML='<div class="empty">Todavía no hay discos que mostrar.</div>';return}filtered.forEach(r=>{const node=$('#recordTemplate').content.cloneNode(true);const img=node.querySelector('.record-cover');img.src=r.cover||'icons/placeholder.svg';img.onerror=()=>img.src='icons/placeholder.svg';node.querySelector('.record-title').textContent=r.title;node.querySelector('.record-artist').textContent=r.artist;node.querySelector('.record-format').textContent=r.format||'DISCO';node.querySelector('.record-meta').textContent=[r.year,r.label].filter(Boolean).join(' · ');const price=node.querySelector('.record-price');price.textContent=r.price?`Desde ${formatPrice(r.price,r.currency)}`:'Precio no disponible';price.classList.toggle('muted-price',!r.price);node.querySelector('.record-menu').onclick=()=>openForm(r);els.records.append(node)})}
+async function refreshPrices(){const all=records();const candidates=all.filter(r=>r.barcode);if(!candidates.length){alert('No hay discos con código de barras para actualizar.');return}els.refresh.disabled=true;let updated=0;for(let i=0;i<candidates.length;i++){setStatus(`Actualizando precios ${i+1} de ${candidates.length}…`);const p=await getDiscogsPrice(candidates[i].barcode);if(p?.found){const ix=all.findIndex(x=>x.id===candidates[i].id);if(ix>=0){all[ix]={...all[ix],price:p.price??'',currency:p.currency??'',discogsId:p.release_id??'',numForSale:p.num_for_sale??'',priceUpdatedAt:new Date().toISOString()};updated++}}}saveRecords(all);stopStatus();els.refresh.disabled=false;alert(`Precios actualizados en ${updated} disco${updated===1?'':'s'}.`)}
+els.scan.onclick=startScanner;els.manual.onclick=()=>{const code=prompt('Escribe los números del código de barras:');if(code)lookupBarcode(code)};$('#closeScanner').onclick=stopScanner;$('#closeForm').onclick=()=>hide(els.form);els.search.oninput=render;els.refresh.onclick=refreshPrices;
+$('#recordForm').onsubmit=e=>{e.preventDefault();const r={id:$('#editId').value||crypto.randomUUID(),barcode:$('#barcode').value.trim(),artist:$('#artist').value.trim(),title:$('#title').value.trim(),year:$('#year').value.trim(),format:$('#format').value.trim(),label:$('#label').value.trim(),cover:$('#cover').value.trim(),price:$('#price').value,currency:$('#currency').value,discogsId:$('#discogsId').value,numForSale:$('#numForSale').value};let all=records();const duplicate=all.find(x=>x.barcode&&x.barcode===r.barcode&&x.id!==r.id);if(duplicate&&!confirm('Ya tienes un disco con este código. ¿Quieres guardarlo igualmente?'))return;const ix=all.findIndex(x=>x.id===r.id);if(ix>=0)all[ix]=r;else all.push(r);saveRecords(all);hide(els.form);e.target.reset()};
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;show(els.install)});els.install.onclick=async()=>{if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;hide(els.install)}else alert('En iPhone: abre esta página en Safari, pulsa Compartir y después “Añadir a pantalla de inicio”.')};
 if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js');render();

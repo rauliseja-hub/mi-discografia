@@ -23,6 +23,7 @@
       <p id="countText">Tu colección está vacía</p>
       <button id="scanBtn" class="primary">⌁ Escanear código</button>
       <button id="manualBtn" class="secondary">Introducir código</button>
+      <button id="refreshPricesBtn" class="tertiary">Actualizar precios</button>
     </section>
 
     <section id="scannerPanel" class="panel hidden">
@@ -39,6 +40,10 @@
       <div class="panel-head"><h2>Ficha del disco</h2><button id="closeForm" class="icon">×</button></div>
       <form id="recordForm">
         <input type="hidden" id="editId" />
+        <input type="hidden" id="price" />
+        <input type="hidden" id="currency" />
+        <input type="hidden" id="discogsId" />
+        <input type="hidden" id="numForSale" />
         <label>Código de barras<input id="barcode" inputmode="numeric" required /></label>
         <label>Artista<input id="artist" required /></label>
         <label>Título<input id="title" required /></label>
@@ -48,6 +53,7 @@
         </div>
         <label>Sello<input id="label" /></label>
         <label>URL de portada<input id="cover" type="url" /></label>
+        <div id="pricePreview" class="price-preview">Precio todavía no disponible</div>
         <button class="primary" type="submit">Guardar en mi colección</button>
       </form>
     </section>
@@ -61,7 +67,7 @@
   <template id="recordTemplate">
     <article class="record-card">
       <img class="record-cover" alt="" />
-      <div class="record-info"><span class="record-format"></span><h3 class="record-title"></h3><p class="record-artist"></p><small class="record-meta"></small></div>
+      <div class="record-info"><span class="record-format"></span><h3 class="record-title"></h3><p class="record-artist"></p><small class="record-meta"></small><strong class="record-price"></strong></div>
       <button class="record-menu" aria-label="Editar">•••</button>
     </article>
   </template>

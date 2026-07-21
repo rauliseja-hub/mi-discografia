@@ -1,17 +1,13 @@
-# Mi Discografía
+# Mi Discografía — versión alfabética con precios
 
-Aplicación web instalable para iPhone que permite escanear códigos de barras y catalogar discos.
+- Escáner EAN/UPC con cámara.
+- Búsqueda de datos mediante MusicBrainz.
+- Orden alfabético por artista y título.
+- Precio orientativo obtenido de Discogs.
+- Botón para actualizar los precios de toda la colección.
 
-## Publicar con GitHub Pages
+## Supabase
+Crear una Edge Function llamada `precio-discogs` con el contenido de `supabase/precio-discogs/index.ts`.
+Debe existir el secreto `DISCOGS_TOKEN`. Desactivar `Verify JWT` en esta función.
 
-1. Sube todos estos archivos a la raíz del repositorio.
-2. Abre **Settings → Pages**.
-3. En **Build and deployment**, selecciona **Deploy from a branch**.
-4. Elige la rama **main** y la carpeta **/(root)**.
-5. Guarda y abre la dirección que mostrará GitHub Pages.
-
-Los discos se guardan en el propio dispositivo mediante almacenamiento local.
-
-
-## Discogs
-La búsqueda por código de barras se realiza mediante la Edge Function `buscar-discogs` de Supabase. El token personal de Discogs permanece guardado como secreto `DISCOGS_TOKEN` en Supabase y no se incluye en el repositorio.
+El precio mostrado es el menor precio anunciado actualmente para la edición localizada en Discogs. No incluye necesariamente gastos de envío y no garantiza el precio final de venta.
