@@ -1,13 +1,13 @@
 # Mi Discografía
 
-Aplicación web instalable para iPhone que permite escanear códigos de barras y catalogar discos.
+Aplicación web instalable para iPhone. Conserva la búsqueda original de códigos con MusicBrainz y, al guardar, añade la edición elegida a la colección personal de Discogs.
 
-## Publicar con GitHub Pages
+## Archivos web
 
-1. Sube todos estos archivos a la raíz del repositorio.
-2. Abre **Settings → Pages**.
-3. En **Build and deployment**, selecciona **Deploy from a branch**.
-4. Elige la rama **main** y la carpeta **/(root)**.
-5. Guarda y abre la dirección que mostrará GitHub Pages.
+Sube a la raíz de GitHub Pages: `index.html`, `styles.css`, `app.js`, `manifest.webmanifest`, `sw.js` y la carpeta `icons`.
 
-Los discos se guardan en el propio dispositivo mediante almacenamiento local.
+## Función de Supabase
+
+Crea una Edge Function llamada `anadir-discogs` y pega el contenido de `supabase/anadir-discogs/index.ts`. Debe tener acceso al secreto `DISCOGS_TOKEN`. Desactiva `Verify JWT` para esta función.
+
+Los discos siguen guardándose localmente en el dispositivo. La sincronización con Discogs se ejecuta después de guardar cada ficha.
